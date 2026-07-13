@@ -12,7 +12,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+// import { Line } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
@@ -147,7 +147,7 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack, initialTab }) 
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{log.amount} | {log.note}</p>
                   </div>
                   <button onClick={() => deleteCareLog(plant.id, log.id)} style={{ background: 'none', color: 'red' }}>삭제</button>
-                  <button onClick={() => { setShowLogForm(true); setEditingLogId(log.id); setCareForm(log); }} style={{ background: 'none', color: 'blue' }}>수정</button>
+                  <button onClick={() => { setShowLogForm(true); setEditingLogId(log.id); setCareForm({...log, amount: log.amount || ''}); }} style={{ background: 'none', color: 'blue' }}>수정</button>
                 </div>
               ))}
             </div>
