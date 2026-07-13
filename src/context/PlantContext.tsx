@@ -129,12 +129,18 @@ export const PlantProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const addReminder = (plantId: string, reminderData: Omit<Reminder, 'id'>) => {
-    const plant = plants.find(p => p.id === plantId);
-    if (plant) {
-      const newReminder = { ...reminderData, id: crypto.randomUUID() };
-      const updatedPlant = { ...plant, reminders: [...plant.reminders, newReminder] };
-      updatePlant(updatedPlant);
-    }
+    setPlants(prevPlants => prevPlants.map(plant => {
+      if (plant.id === plantId) {
+        // Ensure reminders array exists
+        const currentReminders = plant.reminders || [];
+        const newReminder = { ...reminderData, id: crypto.randomUUID() };
+        return { 
+          ...plant, 
+          reminders: [...currentReminders, newReminder] 
+        };
+      }
+      return plant;
+    }));
   };
 
   const deleteReminder = (plantId: string, reminderId: string) => {
