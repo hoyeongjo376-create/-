@@ -10,14 +10,14 @@ const Dashboard: React.FC = () => {
     { label: '등록된 식물', value: `${plants.length}개`, icon: Leaf, color: '#4A6741' },
     { label: '평균 건강 점수', value: `${plants.length > 0 ? Math.round(plants.reduce((acc, p) => acc + p.healthScore, 0) / plants.length) : 0}점`, icon: TrendingUp, color: '#6B8E23' },
     { label: '관리 필요한 식물', value: `${plants.filter(p => p.status !== 'healthy').length}개`, icon: AlertCircle, color: '#CD5C5C' },
-    { label: '알림 건수', value: `${plants.reduce((acc, p) => acc + p.reminders.length, 0)}건`, icon: CheckCircle2, color: '#FF8C00' },
+    { label: '알림 건수', value: `${plants.reduce((acc, p) => acc + (p.reminders || []).length, 0)}건`, icon: CheckCircle2, color: '#FF8C00' },
   ];
 
   const recentLogs = plants.flatMap(p => p.logs.map(l => ({ ...l, plantName: p.name })))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
-  const allReminders = plants.flatMap(p => p.reminders.map(r => ({ ...r, plantName: p.name, plantId: p.id })))
+  const allReminders = plants.flatMap(p => (p.reminders || []).map(r => ({ ...r, plantName: p.name, plantId: p.id })))
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
   const handleAddReminder = () => {
