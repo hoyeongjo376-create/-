@@ -1,24 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePlants } from '../context/PlantContext';
-import { Leaf, Calendar, CheckCircle2, TrendingUp, AlertCircle } from 'lucide-react';
+import { Leaf, CheckCircle2, TrendingUp, AlertCircle, Plus, Trash2 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { plants } = usePlants();
+  const { plants, addReminder, deleteReminder } = usePlants();
+  const [newReminder, setNewReminder] = useState({ plantId: '', task: '', dueDate: new Date().toISOString().split('T')[0] });
 
   const stats = [
     { label: '등록된 식물', value: `${plants.length}개`, icon: Leaf, color: '#4A6741' },
     { label: '평균 건강 점수', value: `${plants.length > 0 ? Math.round(plants.reduce((acc, p) => acc + p.healthScore, 0) / plants.length) : 0}점`, icon: TrendingUp, color: '#6B8E23' },
     { label: '관리 필요한 식물', value: `${plants.filter(p => p.status !== 'healthy').length}개`, icon: AlertCircle, color: '#CD5C5C' },
-    { label: '오늘의 할 일', value: '3건', icon: CheckCircle2, color: '#FF8C00' },
+    { label: '알림 건수', value: `${plants.reduce((acc, p) => acc + p.reminders.length, 0)}건`, icon: CheckCircle2, color: '#FF8C00' },
   ];
 
   const recentLogs = plants.flatMap(p => p.logs.map(l => ({ ...l, plantName: p.name })))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
+  const allReminders = plants.flatMap(p => p.reminders.map(r => ({ ...r, plantName: p.name, plantId: p.id })))
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
+  const handleAddReminder = () => {
+    if (newReminder.plantId && newReminder.task) {
+      addReminder(newReminder.plantId, { task: newReminder.task, dueDate: newReminder.dueDate });
+      setNewReminder({ plantId: '', task: '', dueDate: new Date().toISOString().split('T')[0] });
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-      {/* Stats Grid */}
+      {/* Stats Grid ... (keep same) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
         {stats.map((stat, i) => (
           <div key={i} className="card" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -40,11 +51,10 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px' }}>
-        {/* Recent Growth Logs */}
+        {/* Recent Growth Logs ... (keep same) */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h3 style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>최근 성장 기록</h3>
-            <button style={{ color: 'var(--primary-green)', fontSize: '0.9rem', fontWeight: '600' }}>모두 보기</button>
           </div>
           
           {recentLogs.length > 0 ? (
@@ -72,21 +82,29 @@ const Dashboard: React.FC = () => {
         {/* Reminders / To-Do */}
         <div className="card">
           <h3 style={{ fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '20px' }}>관리 알림</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <div style={{ display: 'flex', gap: '12px', padding: '12px', background: '#F9FAF9', borderRadius: 'var(--radius-sm)' }}>
-              <div style={{ color: '#4A6741' }}><Calendar size={20} /></div>
-              <div>
-                <p style={{ fontWeight: '600', fontSize: '0.95rem' }}>몬스테라 물 주기</p>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>오늘 오후 2시 예정</p>
+          <div style={{ marginBottom: '15px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <select value={newReminder.plantId} onChange={e => setNewReminder({...newReminder, plantId: e.target.value})}>
+              <option value="">식물 선택</option>
+              {plants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <input type="text" placeholder="알림 내용" value={newReminder.task} onChange={e => setNewReminder({...newReminder, task: e.target.value})} />
+            <input type="date" value={newReminder.dueDate} onChange={e => setNewReminder({...newReminder, dueDate: e.target.value})} />
+            <button onClick={handleAddReminder} className="btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+              <Plus size={16} /> 추가
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {allReminders.map(r => (
+              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: '#F9FAF9', borderRadius: 'var(--radius-sm)' }}>
+                <div>
+                  <p style={{ fontWeight: '600', fontSize: '0.9rem' }}>{r.task} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>({r.plantName})</span></p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.dueDate}</p>
+                </div>
+                <button onClick={() => deleteReminder(r.plantId, r.id)} style={{ background: 'none', color: 'red' }}>
+                  <Trash2 size={16} />
+                </button>
               </div>
-            </div>
-            <div style={{ display: 'flex', gap: '12px', padding: '12px', background: '#F9FAF9', borderRadius: 'var(--radius-sm)' }}>
-              <div style={{ color: '#4A6741' }}><Calendar size={20} /></div>
-              <div>
-                <p style={{ fontWeight: '600', fontSize: '0.95rem' }}>고무나무 비료 주기</p>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>내일 예정</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
