@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import type { Plant, GrowthLog, CareLog, EnvLog } from '../types';
+import type { Plant } from '../types';
 import { usePlants } from '../context/PlantContext';
-import { ArrowLeft, Plus, Droplets, Thermometer, Sun, Ruler, FileText, ClipboardList, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Droplets, Thermometer, Sun, FileText, ClipboardList, Activity } from 'lucide-react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -30,11 +30,10 @@ interface PlantDetailProps {
 }
 
 const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
-  const { addGrowthLog, addCareLog, addEnvLog } = usePlants();
-  const [activeTab, setActiveTab] = useState<'overview' | 'growth' | 'care' | 'env'>('overview');
+  const { addGrowthLog, deleteGrowthLog, addCareLog, deleteCareLog, addEnvLog, deleteEnvLog, addReminder, deleteReminder } = usePlants();
+  const [activeTab, setActiveTab] = useState<'overview' | 'growth' | 'care' | 'env' | 'reminder'>('overview');
   const [showLogForm, setShowLogForm] = useState(false);
 
-  // Growth Chart Data
   const growthData = {
     labels: plant.logs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(l => l.date),
     datasets: [
@@ -57,7 +56,22 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
 
   const [growthForm, setGrowthForm] = useState({ date: new Date().toISOString().split('T')[0], height: 0, leafCount: 0, note: '' });
   const [careForm, setCareForm] = useState({ date: new Date().toISOString().split('T')[0], type: 'watering' as any, amount: '', note: '' });
-  const [envForm, setEnvForm] = useState({ date: new Date().toISOString().split('T')[0], temperature: 24, humidity: 50, lightExposure: 6, soilCondition: 'moist' as any });
+  const [envForm, setEnvForm] = useState<{
+    date: string;
+    temperature: number;
+    humidity: number;
+    lightExposure: number;
+    soilCondition: 'dry' | 'moist' | 'wet';
+    stressType?: 'high_temp' | 'low_temp' | 'drought' | 'overwater' | 'nutrient_deficiency';
+  }>({ 
+    date: new Date().toISOString().split('T')[0], 
+    temperature: 24, 
+    humidity: 50, 
+    lightExposure: 6, 
+    soilCondition: 'moist',
+    stressType: undefined 
+  });
+  const [reminderForm, setReminderForm] = useState({ task: '', dueDate: new Date().toISOString().split('T')[0] });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
@@ -66,15 +80,8 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
       </button>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px' }}>
-        {/* Left: Plant Profile */}
         <div className="card" style={{ height: 'fit-content' }}>
-          <div style={{ 
-            width: '100%', 
-            height: '200px', 
-            borderRadius: 'var(--radius-md)', 
-            background: plant.photoUrl ? `url(${plant.photoUrl}) center/cover` : 'var(--sage-green)',
-            marginBottom: '20px'
-          }}></div>
+          <div style={{ width: '100%', height: '200px', borderRadius: 'var(--radius-md)', background: plant.photoUrl ? `url(${plant.photoUrl}) center/cover` : 'var(--sage-green)', marginBottom: '20px' }}></div>
           <h2 style={{ fontSize: '1.6rem', fontWeight: 'bold', marginBottom: '5px' }}>{plant.name}</h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>{plant.type}</p>
           
@@ -100,10 +107,9 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
           </div>
         </div>
 
-        {/* Right: Tabs & Data */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            {['overview', 'growth', 'care', 'env'].map((tab) => (
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            {['overview', 'growth', 'care', 'env', 'reminder'].map((tab) => (
               <button 
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -116,7 +122,7 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
                   boxShadow: 'var(--shadow-sm)'
                 }}
               >
-                {tab === 'overview' ? '개요' : tab === 'growth' ? '성장 기록' : tab === 'care' ? '관리 기록' : '환경 데이터'}
+                {tab === 'overview' ? '개요' : tab === 'growth' ? '성장 기록' : tab === 'care' ? '관리 기록' : tab === 'env' ? '환경 데이터' : '알림 관리'}
               </button>
             ))}
           </div>
@@ -128,23 +134,8 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
                 {plant.logs.length > 0 ? (
                   <Line data={growthData} options={{ responsive: true, plugins: { legend: { position: 'top' as const } } }} />
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
-                    그래프를 표시할 데이터가 부족합니다. 성장 기록을 추가해주세요.
-                  </div>
+                  <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>그래프를 표시할 데이터가 부족합니다. 성장 기록을 추가해주세요.</div>
                 )}
-
-                <div style={{ marginTop: '30px', padding: '20px', background: '#F0F4EF', borderRadius: 'var(--radius-md)', border: '1px solid var(--sage-green)' }}>
-                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--primary-green-dark)' }}>
-                    <Activity size={18} /> 건강 분석 리포트
-                  </h4>
-                  <p style={{ fontSize: '0.95rem' }}>
-                    {plant.healthScore >= 80 
-                      ? "현재 식물이 아주 건강하게 자라고 있습니다! 현재의 관리 주기를 유지해주세요."
-                      : plant.healthScore >= 50 
-                      ? "성장 속도가 다소 정체되었습니다. 물 공급 주기와 햇빛 노출 시간을 점검해보세요."
-                      : "식물 상태가 좋지 않습니다. 과습 혹은 영양 부족이 의심되니 즉각적인 조치가 필요합니다."}
-                  </p>
-                </div>
               </div>
             )}
 
@@ -152,9 +143,7 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                   <h3 style={{ fontWeight: 'bold' }}>성장 로그</h3>
-                  <button onClick={() => setShowLogForm(!showLogForm)} className="btn-primary" style={{ padding: '5px 15px', fontSize: '0.8rem' }}>
-                    {showLogForm ? '취소' : '기록 추가'}
-                  </button>
+                  <button onClick={() => setShowLogForm(!showLogForm)} className="btn-primary" style={{ padding: '5px 15px', fontSize: '0.8rem' }}>{showLogForm ? '취소' : '기록 추가'}</button>
                 </div>
 
                 {showLogForm && (
@@ -164,12 +153,7 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
                       <input type="number" placeholder="높이 (cm)" value={growthForm.height || ''} onChange={e => setGrowthForm({...growthForm, height: Number(e.target.value)})} />
                       <input type="number" placeholder="잎 개수" value={growthForm.leafCount || ''} onChange={e => setGrowthForm({...growthForm, leafCount: Number(e.target.value)})} />
                     </div>
-                    <textarea 
-                      placeholder="특이사항 메모" 
-                      value={growthForm.note} 
-                      onChange={e => setGrowthForm({...growthForm, note: e.target.value})}
-                      style={{ width: '100%', minHeight: '80px', marginBottom: '10px' }}
-                    ></textarea>
+                    <textarea placeholder="특이사항 메모" value={growthForm.note} onChange={e => setGrowthForm({...growthForm, note: e.target.value})} style={{ width: '100%', minHeight: '80px', marginBottom: '10px' }}></textarea>
                     <button onClick={() => { addGrowthLog(plant.id, growthForm); setShowLogForm(false); }} className="btn-primary" style={{ width: '100%' }}>기록 저장</button>
                   </div>
                 )}
@@ -182,14 +166,9 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{log.note || '기록 없음'}</p>
                       </div>
                       <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                        <div style={{ textAlign: 'center' }}>
-                          <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>높이</p>
-                          <p style={{ fontWeight: 'bold' }}>{log.height}cm</p>
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>잎</p>
-                          <p style={{ fontWeight: 'bold' }}>{log.leafCount}개</p>
-                        </div>
+                        <div style={{ textAlign: 'center' }}><p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>높이</p><p style={{ fontWeight: 'bold' }}>{log.height}cm</p></div>
+                        <div style={{ textAlign: 'center' }}><p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>잎</p><p style={{ fontWeight: 'bold' }}>{log.leafCount}개</p></div>
+                        <button onClick={() => deleteGrowthLog(plant.id, log.id)} style={{ background: 'none', color: 'red' }}>삭제</button>
                       </div>
                     </div>
                   ))}
@@ -201,9 +180,7 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                   <h3 style={{ fontWeight: 'bold' }}>관리 내역</h3>
-                  <button onClick={() => setShowLogForm(!showLogForm)} className="btn-primary" style={{ padding: '5px 15px', fontSize: '0.8rem' }}>
-                    {showLogForm ? '취소' : '관리 추가'}
-                  </button>
+                  <button onClick={() => setShowLogForm(!showLogForm)} className="btn-primary" style={{ padding: '5px 15px', fontSize: '0.8rem' }}>{showLogForm ? '취소' : '관리 추가'}</button>
                 </div>
 
                 {showLogForm && (
@@ -217,12 +194,7 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
                       </select>
                       <input type="text" placeholder="양 (예: 500ml)" value={careForm.amount} onChange={e => setCareForm({...careForm, amount: e.target.value})} />
                     </div>
-                    <textarea 
-                      placeholder="메모" 
-                      value={careForm.note} 
-                      onChange={e => setCareForm({...careForm, note: e.target.value})}
-                      style={{ width: '100%', minHeight: '80px', marginBottom: '10px' }}
-                    ></textarea>
+                    <textarea placeholder="메모" value={careForm.note} onChange={e => setCareForm({...careForm, note: e.target.value})} style={{ width: '100%', minHeight: '80px', marginBottom: '10px' }}></textarea>
                     <button onClick={() => { addCareLog(plant.id, careForm); setShowLogForm(false); }} className="btn-primary" style={{ width: '100%' }}>관리 저장</button>
                   </div>
                 )}
@@ -238,6 +210,7 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{log.amount} {log.note && `| ${log.note}`}</p>
                       </div>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(log.date).toLocaleDateString()}</p>
+                      <button onClick={() => deleteCareLog(plant.id, log.id)} style={{ background: 'none', color: 'red' }}>삭제</button>
                     </div>
                   ))}
                 </div>
@@ -248,13 +221,12 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                   <h3 style={{ fontWeight: 'bold' }}>환경 기록</h3>
-                  <button onClick={() => setShowLogForm(!showLogForm)} className="btn-primary" style={{ padding: '5px 15px', fontSize: '0.8rem' }}>
-                    {showLogForm ? '취소' : '환경 추가'}
-                  </button>
+                  <button onClick={() => setShowLogForm(!showLogForm)} className="btn-primary" style={{ padding: '5px 15px', fontSize: '0.8rem' }}>{showLogForm ? '취소' : '환경 추가'}</button>
                 </div>
 
                 {showLogForm && (
                   <div style={{ marginBottom: '30px', padding: '20px', border: '1px solid #ddd', borderRadius: 'var(--radius-md)' }}>
+                    {/* ... form content ... */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '15px' }}>
                       <input type="date" value={envForm.date} onChange={e => setEnvForm({...envForm, date: e.target.value})} />
                       <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -274,6 +246,16 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
                         <option value="wet">축축함</option>
                       </select>
                     </div>
+                    <div style={{ marginBottom: '15px' }}>
+                      <select value={envForm.stressType || ''} onChange={e => setEnvForm({...envForm, stressType: e.target.value as any || undefined})}>
+                        <option value="">스트레스 요인 선택 (선택사항)</option>
+                        <option value="high_temp">고온 스트레스</option>
+                        <option value="low_temp">저온 스트레스</option>
+                        <option value="drought">수분 부족</option>
+                        <option value="overwater">과습</option>
+                        <option value="nutrient_deficiency">영양 부족</option>
+                      </select>
+                    </div>
                     <button onClick={() => { addEnvLog(plant.id, envForm); setShowLogForm(false); }} className="btn-primary" style={{ width: '100%' }}>환경 저장</button>
                   </div>
                 )}
@@ -282,20 +264,29 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
                   {plant.envLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log) => (
                     <div key={log.id} style={{ padding: '15px', background: '#F9FAF9', borderRadius: 'var(--radius-sm)' }}>
                       <p style={{ fontWeight: 'bold', fontSize: '0.85rem', marginBottom: '10px' }}>{new Date(log.date).toLocaleDateString()}</p>
+                      <button onClick={() => deleteEnvLog(plant.id, log.id)} style={{ background: 'none', color: 'red', fontSize: '0.7rem' }}>삭제</button>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '0.8rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>온도</span> <strong>{log.temperature}°C</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>습도</span> <strong>{log.humidity}%</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>빛</span> <strong>{log.lightExposure}h</strong>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>토양</span> <strong>{log.soilCondition}</strong>
-                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>온도</span> <strong>{log.temperature}°C</strong></div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>습도</span> <strong>{log.humidity}%</strong></div>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'reminder' && (
+              <div>
+                <div style={{ marginBottom: '20px' }}>
+                  <input type="text" placeholder="알림 내용" value={reminderForm.task} onChange={e => setReminderForm({...reminderForm, task: e.target.value})} style={{ marginRight: '10px' }} />
+                  <input type="date" value={reminderForm.dueDate} onChange={e => setReminderForm({...reminderForm, dueDate: e.target.value})} style={{ marginRight: '10px' }} />
+                  <button onClick={() => addReminder(plant.id, reminderForm)} className="btn-primary">알림 추가</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {plant.reminders.map(r => (
+                    <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: '#F9FAF9' }}>
+                      <span>{r.task} ({r.dueDate})</span>
+                      <button onClick={() => deleteReminder(plant.id, r.id)} style={{ color: 'red' }}>삭제</button>
                     </div>
                   ))}
                 </div>

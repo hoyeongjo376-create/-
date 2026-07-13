@@ -8,8 +8,15 @@ export interface Plant {
   logs: GrowthLog[];
   careLogs: CareLog[];
   envLogs: EnvLog[];
+  reminders: Reminder[];
   status: 'healthy' | 'warning' | 'critical';
   healthScore: number;
+}
+
+export interface Reminder {
+  id: string;
+  task: string;
+  dueDate: string;
 }
 
 export interface GrowthLog {
@@ -36,6 +43,7 @@ export interface EnvLog {
   humidity: number;
   lightExposure: number; // hours
   soilCondition: 'dry' | 'moist' | 'wet';
+  stressType?: 'high_temp' | 'low_temp' | 'drought' | 'overwater' | 'nutrient_deficiency';
 }
 
 export interface StressRecord {
