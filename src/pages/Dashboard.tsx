@@ -27,19 +27,15 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const [showReminderForm, setShowReminderForm] = useState(false);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
       {/* Stats Grid ... (keep same) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
         {stats.map((stat, i) => (
           <div key={i} className="card" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{ 
-              background: `${stat.color}15`, 
-              color: stat.color, 
-              padding: '12px', 
-              borderRadius: 'var(--radius-sm)',
-              display: 'flex'
-            }}>
+            <div style={{ background: `${stat.color}15`, color: stat.color, padding: '12px', borderRadius: 'var(--radius-sm)', display: 'flex' }}>
               <stat.icon size={24} />
             </div>
             <div>
@@ -50,14 +46,46 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px' }}>
-        {/* Recent Growth Logs ... (keep same) */}
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3 style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>최근 성장 기록</h3>
+      {/* Reminders Section (Prominent) */}
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3 style={{ fontWeight: 'bold', fontSize: '1.4rem' }}>관리 알림</h3>
+          <button onClick={() => setShowReminderForm(!showReminderForm)} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={18} /> {showReminderForm ? '닫기' : '알림 등록'}
+          </button>
+        </div>
+
+        {showReminderForm && (
+          <div style={{ marginBottom: '20px', padding: '20px', background: '#F9FAF9', borderRadius: 'var(--radius-md)', display: 'grid', gridTemplateColumns: '1fr 2fr 1fr auto', gap: '10px' }}>
+            <select value={newReminder.plantId} onChange={e => setNewReminder({...newReminder, plantId: e.target.value})}>
+              <option value="">식물 선택</option>
+              {plants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <input type="text" placeholder="알림 내용" value={newReminder.task} onChange={e => setNewReminder({...newReminder, task: e.target.value})} />
+            <input type="date" value={newReminder.dueDate} onChange={e => setNewReminder({...newReminder, dueDate: e.target.value})} />
+            <button onClick={handleAddReminder} className="btn-primary">등록</button>
           </div>
-          
-          {recentLogs.length > 0 ? (
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
+          {allReminders.map(r => (
+            <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: '#fff', border: '1px solid #eee', borderRadius: 'var(--radius-sm)' }}>
+              <div>
+                <p style={{ fontWeight: '600', fontSize: '0.95rem' }}>{r.task} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>({r.plantName})</span></p>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{r.dueDate}</p>
+              </div>
+              <button onClick={() => deleteReminder(r.plantId, r.id)} style={{ background: 'none', color: 'red' }}>
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent Logs Section */}
+      <div className="card">
+        <h3 style={{ fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '20px' }}>최근 성장 기록</h3>
+        {recentLogs.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               {recentLogs.map((log, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '15px', borderBottom: i < recentLogs.length - 1 ? '1px solid #eee' : 'none' }}>
@@ -77,39 +105,8 @@ const Dashboard: React.FC = () => {
               기록된 성장 데이터가 없습니다.
             </div>
           )}
-        </div>
-
-        {/* Reminders / To-Do */}
-        <div className="card">
-          <h3 style={{ fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '20px' }}>관리 알림</h3>
-          <div style={{ marginBottom: '15px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <select value={newReminder.plantId} onChange={e => setNewReminder({...newReminder, plantId: e.target.value})}>
-              <option value="">식물 선택</option>
-              {plants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <input type="text" placeholder="알림 내용" value={newReminder.task} onChange={e => setNewReminder({...newReminder, task: e.target.value})} />
-            <input type="date" value={newReminder.dueDate} onChange={e => setNewReminder({...newReminder, dueDate: e.target.value})} />
-            <button onClick={handleAddReminder} className="btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-              <Plus size={16} /> 추가
-            </button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {allReminders.map(r => (
-              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: '#F9FAF9', borderRadius: 'var(--radius-sm)' }}>
-                <div>
-                  <p style={{ fontWeight: '600', fontSize: '0.9rem' }}>{r.task} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>({r.plantName})</span></p>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.dueDate}</p>
-                </div>
-                <button onClick={() => deleteReminder(r.plantId, r.id)} style={{ background: 'none', color: 'red' }}>
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
 };
-
 export default Dashboard;
