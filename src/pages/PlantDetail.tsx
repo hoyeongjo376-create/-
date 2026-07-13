@@ -27,11 +27,12 @@ ChartJS.register(
 interface PlantDetailProps {
   plant: Plant;
   onBack: () => void;
+  initialTab?: 'overview' | 'growth' | 'care' | 'env' | 'reminder';
 }
 
-const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack }) => {
+const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack, initialTab }) => {
   const { addGrowthLog, deleteGrowthLog, addCareLog, deleteCareLog, addEnvLog, deleteEnvLog, addReminder, deleteReminder } = usePlants();
-  const [activeTab, setActiveTab] = useState<'overview' | 'growth' | 'care' | 'env' | 'reminder'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'growth' | 'care' | 'env' | 'reminder'>(initialTab || 'overview');
   const [showLogForm, setShowLogForm] = useState(false);
 
   const growthData = {
