@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Plant } from '../types';
 import { usePlants } from '../context/PlantContext';
-import { ArrowLeft, Droplets, Thermometer, Sun, FileText, ClipboardList, Activity } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -49,7 +49,7 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack, initialTab }) 
 
   const handleSaveGrowthLog = () => {
     if (editingLogId) {
-      updateGrowthLog(plant.id, { ...growthForm, id: editingLogId });
+      updateGrowthLog(plant.id, growthForm);
       setEditingLogId(null);
     } else {
       addGrowthLog(plant.id, { date: growthForm.date, height: growthForm.height, leafCount: growthForm.leafCount, note: growthForm.note });
@@ -60,7 +60,7 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack, initialTab }) 
 
   const handleSaveCareLog = () => {
     if (editingLogId) {
-      updateCareLog(plant.id, { ...careForm, id: editingLogId });
+      updateCareLog(plant.id, careForm);
       setEditingLogId(null);
     } else {
       addCareLog(plant.id, { date: careForm.date, type: careForm.type, amount: careForm.amount, note: careForm.note });
@@ -90,6 +90,7 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack, initialTab }) 
     setReminderForm({ id: '', task: '', dueDate: new Date().toISOString().split('T')[0] });
     setShowLogForm(false);
   };
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
@@ -165,7 +166,72 @@ const PlantDetail: React.FC<PlantDetailProps> = ({ plant, onBack, initialTab }) 
               </div>
             )}
             
-            {/* Care and Env and Reminder tab structures ... */}
+            {activeTab === 'care' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                  <h3 style={{ fontWeight: 'bold' }}>관리 내역</h3>
+                  <button onClick={() => { setShowLogForm(!showLogForm); setEditingLogId(null); }} className="btn-primary" style={{ padding: '5px 15px', fontSize: '0.8rem' }}>{showLogForm ? '취소' : '관리 추가'}</button>
+                </div>
+                {showLogForm && (
+                  <div style={{ marginBottom: '30px', padding: '20px', border: '1px solid #ddd', borderRadius: 'var(--radius-md)' }}>
+                    <input type="date" value={careForm.date} onChange={e => setCareForm({...careForm, date: e.target.value})} />
+                    <select value={careForm.type} onChange={e => setCareForm({...careForm, type: e.target.value as any})}>
+                      <option value="watering">물 주기</option>
+                      <option value="fertilizer">비료 주기</option>
+                      <option value="repotting">분갈이</option>
+                    </select>
+                    <input type="text" placeholder="양" value={careForm.amount} onChange={e => setCareForm({...careForm, amount: e.target.value})} />
+                    <textarea placeholder="메모" value={careForm.note} onChange={e => setCareForm({...careForm, note: e.target.value})} />
+                    <button onClick={handleSaveCareLog} className="btn-primary">{editingLogId ? '수정' : '저장'}</button>
+                  </div>
+                )}
+                {plant.careLogs.sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).map(log => (
+                  <div key={log.id} style={{ display: 'flex', gap: '10px' }}>
+                    {log.date} - {log.type}
+                    <button onClick={() => deleteCareLog(plant.id, log.id)}>삭제</button>
+                    <button onClick={() => { setShowLogForm(true); setEditingLogId(log.id); setCareForm({...log, amount: log.amount || ''}); }}>수정</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {activeTab === 'env' && (
+              <div>
+                 <h3>환경 기록</h3>
+                 <button onClick={() => setShowLogForm(!showLogForm)}>기록 추가</button>
+                 {showLogForm && (
+                   <div>
+                     <input type="date" value={envForm.date} onChange={e => setEnvForm({...envForm, date: e.target.value})} />
+                     <button onClick={handleSaveEnvLog}>저장</button>
+                   </div>
+                 )}
+                 {plant.envLogs.map(log => (
+                  <div key={log.id} style={{ display: 'flex', gap: '10px' }}>
+                    {log.date} - {log.temperature}C
+                    <button onClick={() => deleteEnvLog(plant.id, log.id)}>삭제</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {activeTab === 'reminder' && (
+              <div>
+                <h3>알림 관리</h3>
+                <button onClick={() => setShowLogForm(!showLogForm)}>알림 추가</button>
+                {showLogForm && (
+                   <div>
+                     <input type="text" value={reminderForm.task} onChange={e => setReminderForm({...reminderForm, task: e.target.value})} />
+                     <button onClick={handleSaveReminder}>저장</button>
+                   </div>
+                 )}
+                {plant.reminders.map(r => (
+                  <div key={r.id} style={{ display: 'flex', gap: '10px' }}>
+                    {r.dueDate} - {r.task}
+                    <button onClick={() => deleteReminder(plant.id, r.id)}>삭제</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
