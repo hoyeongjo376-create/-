@@ -14,6 +14,10 @@ interface PlantContextType {
   deleteEnvLog: (plantId: string, logId: string) => void;
   addReminder: (plantId: string, reminder: Omit<Reminder, 'id'>) => void;
   deleteReminder: (plantId: string, reminderId: string) => void;
+  updateGrowthLog: (plantId: string, log: GrowthLog) => void;
+  updateCareLog: (plantId: string, log: CareLog) => void;
+  updateEnvLog: (plantId: string, log: EnvLog) => void;
+  updateReminder: (plantId: string, reminder: Reminder) => void;
 }
 
 const PlantContext = createContext<PlantContextType | undefined>(undefined);
@@ -150,16 +154,37 @@ export const PlantProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const updateGrowthLog = (plantId: string, log: GrowthLog) => {
+    const plant = plants.find(p => p.id === plantId);
+    if (plant) {
+      updatePlant({ ...plant, logs: plant.logs.map(l => l.id === log.id ? log : l) });
+    }
+  };
+
+  const updateCareLog = (plantId: string, log: CareLog) => {
+    const plant = plants.find(p => p.id === plantId);
+    if (plant) {
+      updatePlant({ ...plant, careLogs: plant.careLogs.map(l => l.id === log.id ? log : l) });
+    }
+  };
+
+  const updateEnvLog = (plantId: string, log: EnvLog) => {
+    const plant = plants.find(p => p.id === plantId);
+    if (plant) {
+      updatePlant({ ...plant, envLogs: plant.envLogs.map(l => l.id === log.id ? log : l) });
+    }
+  };
+
+  const updateReminder = (plantId: string, reminder: Reminder) => {
+    const plant = plants.find(p => p.id === plantId);
+    if (plant) {
+      updatePlant({ ...plant, reminders: plant.reminders.map(r => r.id === reminder.id ? reminder : r) });
+    }
+  };
+
   return (
-    <PlantContext.Provider value={{ plants, addPlant, updatePlant, deletePlant, addGrowthLog, deleteGrowthLog, addCareLog, deleteCareLog, addEnvLog, deleteEnvLog, addReminder, deleteReminder }}>
+    <PlantContext.Provider value={{ plants, addPlant, updatePlant, deletePlant, addGrowthLog, deleteGrowthLog, updateGrowthLog, addCareLog, deleteCareLog, updateCareLog, addEnvLog, deleteEnvLog, updateEnvLog, addReminder, deleteReminder, updateReminder }}>
       {children}
     </PlantContext.Provider>
   );
-};
-export const usePlants = () => {
-  const context = useContext(PlantContext);
-  if (context === undefined) {
-    throw new Error('usePlants must be used within a PlantProvider');
-  }
-  return context;
 };
